@@ -284,7 +284,7 @@ async def yeet(
 ) -> dict[str, Any]:
     first = (
         database.query(Yeets)
-        .filter_by(id=yeet_id.id, author=request.session["user"]["sub"])
+        .filter_by(id=yeet_id, author=request.session["user"]["sub"])
         .first()
     )
     if not first:
