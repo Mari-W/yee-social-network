@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, Response
 from authlib.integrations.starlette_client import OAuth
 from requests import get as requests_get
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi import Request
+from fastapi import Request, APIRouter
 from fastapi.responses import RedirectResponse
 from pydantic_settings import BaseSettings
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -46,8 +46,7 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
-    openapi_url="/courses/2023WS-EiP/openapi.json"
-    
+    openapi_url="/courses/2023WS-EiP/openapi.json",
 )
 # app.include_router(prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
 limiter = Limiter(key_func=get_remote_address)
@@ -55,6 +54,11 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SessionMiddleware, secret_key=env.secret_key, max_age=94608000)
 
+router = APIRouter(
+    prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else ""
+)
+
+app.include_router(router)
 
 laurel = OAuth()
 laurel.register(
@@ -193,7 +197,7 @@ def authorized(f):
     return decorated
 
 
-@app.get("/", include_in_schema=False)
+@router.get("/", include_in_schema=False)
 @authorized
 async def root(request: Request) -> RedirectResponse:
     return RedirectResponse(
@@ -203,7 +207,7 @@ async def root(request: Request) -> RedirectResponse:
     )
 
 
-@app.get("/login", include_in_schema=False)
+@router.get("/login", include_in_schema=False)
 @limiter.limit("20/minute")
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
@@ -212,7 +216,7 @@ async def login(request: Request) -> dict[str, Any]:
     )
 
 
-@app.get("/callback", include_in_schema=False, response_model=None)
+@router.get("/callback", include_in_schema=False, response_model=None)
 @limiter.limit("20/minute")
 async def callback(request: Request) -> dict[str, Any] | RedirectResponse:
     client = laurel.create_client("laurel")
@@ -229,7 +233,7 @@ async def error(response: Response, message: str) -> dict[str, Any]:
     return {"message": message}
 
 
-@app.get(
+@router.get(
     "/yeets/all/{amount}",
     tags=["yeets"],
     summary="get the latest yeets from the overall network",
@@ -264,7 +268,7 @@ async def all_yeets(
     }
 
 
-@app.get(
+@router.get(
     "/yeets/{yeet_id}/likes",
     tags=["yeets"],
     summary="get all users who liked a yeet",
@@ -304,7 +308,7 @@ class YeetId(BaseModel):
     id: int
 
 
-@app.post(
+@router.post(
     "/yeets/add",
     tags=["yeets"],
     summary="create an new yeet",
@@ -334,7 +338,7 @@ async def add_yeet(
     return {}
 
 
-@app.post(
+@router.post(
     "/yeets/remove",
     tags=["yeets"],
     summary="remove a yeet",
@@ -363,7 +367,7 @@ async def remove_yeet(
     return {}
 
 
-@app.post(
+@router.post(
     "/likes/add",
     tags=["likes"],
     summary="like a yeet",
@@ -394,7 +398,7 @@ async def add_like(
     return {}
 
 
-@app.post(
+@router.post(
     "/likes/remove",
     tags=["likes"],
     summary="un-like a yeet",
@@ -428,7 +432,7 @@ async def remove_like(
     return {}
 
 
-@app.get(
+@router.get(
     "/users/all",
     tags=["users"],
     summary="get all users registered on the network",
@@ -453,7 +457,7 @@ async def all_users(
     }
 
 
-@app.get(
+@router.get(
     "/users/{user}/yeets",
     tags=["users"],
     summary="get all yeets yeeted by an user",
@@ -488,7 +492,7 @@ async def yeets(
     }
 
 
-@app.get(
+@router.get(
     "/users/{user}/following",
     tags=["users"],
     summary="get all users who an user follows",
@@ -512,7 +516,7 @@ async def following(
     }
 
 
-@app.get(
+@router.get(
     "/users/{user}/followers",
     tags=["users"],
     summary="get all users who follow an user",
@@ -536,7 +540,7 @@ async def followers(
     }
 
 
-@app.get(
+@router.get(
     "/users/{user}/likes",
     tags=["users"],
     summary="get all yeets who an user liked",
@@ -563,7 +567,7 @@ class User(BaseModel):
     username: str
 
 
-@app.post(
+@router.post(
     "/follows/add",
     tags=["follows"],
     summary="follow a user",
@@ -592,7 +596,7 @@ async def follow(
     return {}
 
 
-@app.post(
+@router.post(
     "/follows/remove",
     tags=["follows"],
     summary="un-follow a user",
