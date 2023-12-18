@@ -144,7 +144,7 @@ def ttl_cache(f, ttl=timedelta(minutes=20)):
     def wrapped(*args, **kwargs):
         nonlocal time
         nonlocal value
-        now = datetime.now()
+        now = datetime.now().timestamp()
         if not time or now - time > ttl:
             value = f(*args, **kwargs)
             time = now
