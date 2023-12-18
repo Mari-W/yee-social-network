@@ -12,9 +12,8 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
 
 WORKDIR /app
 
+COPY ./requirements.txt /app/requirements.txt
 RUN python3.11 -m pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 COPY ./server.py /app/server.py
-COPY ./requirements.txt /app/requirements.txt
-
 CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "5005"]
