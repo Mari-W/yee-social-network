@@ -35,7 +35,7 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url=("/courses/2023WS-EiP/yee-social-network" if env.api_url != "" else "")
+    docs_url=("/yee" if env.api_url != "" else "")
     + "/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
@@ -45,10 +45,10 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
-    openapi_url=("/courses/2023WS-EiP/yee-social-network" if env.api_url != "" else "")
+    openapi_url=("/yee" if env.api_url != "" else "")
     + "/openapi.json",
 )
-# app.include_router(prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+# app.include_router(prefix="/yee" if env.api_key != "" else "")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -194,19 +194,19 @@ def authorized(f):
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "") + "/",
+    ("/yee" if env.api_key != "" else "") + "/",
     include_in_schema=False,
 )
 @authorized
 async def root(request: Request) -> RedirectResponse:
     return RedirectResponse(
-        ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+        ("/yee" if env.api_key != "" else "")
         + "/interactive"
     )
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "") + "/login",
+    ("/yee" if env.api_key != "" else "") + "/login",
     include_in_schema=False,
 )
 @limiter.limit("20/minute")
@@ -218,7 +218,7 @@ async def login(request: Request) -> dict[str, Any]:
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/callback",
     include_in_schema=False,
     response_model=None,
@@ -240,7 +240,7 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/yeets/all/{amount}",
     tags=["yeets"],
     summary="get the latest yeets from the overall network",
@@ -276,7 +276,7 @@ async def all_yeets(
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/yeets/{yeet_id}/likes",
     tags=["yeets"],
     summary="get all users who liked a yeet",
@@ -317,7 +317,7 @@ class YeetId(BaseModel):
 
 
 @app.post(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/yeets/add",
     tags=["yeets"],
     summary="create an new yeet",
@@ -348,7 +348,7 @@ async def add_yeet(
 
 
 @app.post(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/yeets/remove",
     tags=["yeets"],
     summary="remove a yeet",
@@ -378,7 +378,7 @@ async def remove_yeet(
 
 
 @app.post(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/likes/add",
     tags=["likes"],
     summary="like a yeet",
@@ -410,7 +410,7 @@ async def add_like(
 
 
 @app.post(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/likes/remove",
     tags=["likes"],
     summary="un-like a yeet",
@@ -445,7 +445,7 @@ async def remove_like(
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/users/all",
     tags=["users"],
     summary="get all users registered on the network",
@@ -471,7 +471,7 @@ async def all_users(
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/users/{user}/yeets",
     tags=["users"],
     summary="get all yeets yeeted by an user",
@@ -507,7 +507,7 @@ async def yeets(
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/users/{user}/following",
     tags=["users"],
     summary="get all users who an user follows",
@@ -532,7 +532,7 @@ async def following(
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/users/{user}/followers",
     tags=["users"],
     summary="get all users who follow an user",
@@ -557,7 +557,7 @@ async def followers(
 
 
 @app.get(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/users/{user}/likes",
     tags=["users"],
     summary="get all yeets who an user liked",
@@ -585,7 +585,7 @@ class User(BaseModel):
 
 
 @app.post(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/follows/add",
     tags=["follows"],
     summary="follow a user",
@@ -615,7 +615,7 @@ async def follow(
 
 
 @app.post(
-    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    ("/yee" if env.api_key != "" else "")
     + "/follows/remove",
     tags=["follows"],
     summary="un-follow a user",
