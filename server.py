@@ -201,7 +201,7 @@ async def root(request: Request) -> RedirectResponse:
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
     return await client.authorize_redirect(  # type: ignore
-        request, env.public_url + "/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + "/callback"
+        request, env.public_url + "/callback"
     )
 
 
