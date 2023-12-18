@@ -326,12 +326,9 @@ async def add_yeet(
         return await error(
             response,
             "maximum content length of a yeet is 420 characters (including spaces)!",
-        ) 
-    if not len(content.content): 
-        return await error(
-            response,
-            "dont you have at least something to say?!"
-        ) 
+        )
+    if not len(content.content):
+        return await error(response, "dont you have at least something to say?!")
     database.add(
         Yeets(
             date=datetime.utcnow().timestamp(),
@@ -452,14 +449,7 @@ async def all_users(
     response: Response,
     database: Session = Depends(database),
 ) -> dict[str, Any]:
-    return {
-        "response": [
-            {
-                "username": user,
-            }
-            for user in get_all_users()
-        ]
-    }
+    return {"response": get_all_users()}
 
 
 @app.get(
