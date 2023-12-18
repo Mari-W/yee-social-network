@@ -269,6 +269,41 @@ async def all_yeets(
 
 
 @app.get(
+    ("/yee" if env.api_key != "" else "") + "/yeets/{yeet_id}",
+    tags=["yeets"],
+    summary="get a yeet by its yeet_id",
+    description="get a yeet by its yeet_id as dictionary",
+)
+@limiter.limit("20/minute")
+@authorized
+async def yeet(
+    request: Request,
+    yeet_id: int,
+    response: Response,
+    database: Session = Depends(database),
+) -> dict[str, Any]:
+    first = (
+        database.query(Yeets)
+        .filter_by(id=yeet_id.id, author=request.session["user"]["sub"])
+        .first()
+    )
+    if not first:
+        return await error(
+            response,
+            f"there does not exist a yeet with yeet_id {yeet_id}!",
+        )
+
+    return {
+        "response": {
+            "yeet_id": first.id,
+            "author": first.author,
+            "content": first.content,
+            "date": first.date,
+        }
+    }
+
+
+@app.get(
     ("/yee" if env.api_key != "" else "") + "/yeets/{yeet_id}/likes",
     tags=["yeets"],
     summary="get all users who liked a yeet",
