@@ -12,9 +12,9 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 
 WORKDIR /app
 
-COPY ./src /app/src
+COPY ./server /app/server
 COPY ./requirements.txt /app/requirements.txt
 
 RUN python3 -m pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "5005"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "5005"]
