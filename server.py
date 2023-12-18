@@ -34,7 +34,7 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url="/interactive",
+    docs_url="/courses/2023WS-EiP/yee-social-network" if env.api_key == "" else "" + "/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
@@ -180,7 +180,11 @@ def authorized(f):
         if not request.session.get("user"):
             request.session["redirect"] = str(request.url)
             return RedirectResponse(
-                env.auth_url + "/auth/login?redirect=" + str(request.url_for("login")),
+                env.auth_url
+                + "/auth/login?redirect="
+                + "/courses/2023WS-EiP/yee-social-network"
+                if env.api_key == ""
+                else "" + str(request.url_for("login")),
             )
         return await f(*args, **kwargs)
 
@@ -190,7 +194,7 @@ def authorized(f):
 @app.get("/", include_in_schema=False)
 @authorized
 async def root(request: Request) -> RedirectResponse:
-    return RedirectResponse("/interactive")
+    return RedirectResponse("/courses/2023WS-EiP/yee-social-network" if env.api_key == "" else "" + "/interactive")
 
 
 @app.get("/login", include_in_schema=False)
@@ -198,7 +202,7 @@ async def root(request: Request) -> RedirectResponse:
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
     return await client.authorize_redirect(  # type: ignore
-        request, request.url_for("callback")
+        request, "/courses/2023WS-EiP/yee-social-network" if env.api_key == "" else "" + request.url_for("callback")
     )
 
 
@@ -268,8 +272,12 @@ async def yeet_likes(
     response: Response,
     database: Session = Depends(database),
 ) -> dict[str, Any]:
-    if not database.query(database.query(Yeets).filter_by(id=yeet_id).exists()).scalar():
-        return await error(response, f"there does not exist a yeet with yeet_id {yeet_id}")
+    if not database.query(
+        database.query(Yeets).filter_by(id=yeet_id).exists()
+    ).scalar():
+        return await error(
+            response, f"there does not exist a yeet with yeet_id {yeet_id}"
+        )
 
     return {
         "response": [
@@ -341,7 +349,8 @@ async def remove_yeet(
     )
     if not first:
         return await error(
-            response, f"there does not exist a yeet with yeet_id {yeet_id} yeeted by you!"
+            response,
+            f"there does not exist a yeet with yeet_id {yeet_id} yeeted by you!",
         )
     database.delete(first)
     database.commit()
@@ -371,7 +380,9 @@ async def add_like(
         .filter_by(yeet=yeet_id.id, user=request.session["user"]["sub"])
         .exists()
     ).scalar():
-        return await error(response, f"your already liked the yeet with id {yeet_id.id}!")
+        return await error(
+            response, f"your already liked the yeet with id {yeet_id.id}!"
+        )
     database.add(Likes(yeet=yeet_id.id, user=request.session["user"]["sub"]))
     database.commit()
     return {}
@@ -394,14 +405,18 @@ async def remove_like(
     if not database.query(
         database.query(Yeets).filter_by(id=yeet_id.id).exists()
     ).scalar():
-        return await error(response, f"there does not exist a yeet with yeet_id {yeet_id}!")
+        return await error(
+            response, f"there does not exist a yeet with yeet_id {yeet_id}!"
+        )
     first = (
         database.query(Likes)
         .filter_by(yeet=yeet_id.id, user=request.session["user"]["sub"])
         .first()
     )
     if not first:
-        return await error(response, f"you have not yet liked yeet with yeet_id {yeet_id}!")
+        return await error(
+            response, f"you have not yet liked yeet with yeet_id {yeet_id}!"
+        )
     database.delete(first)
     database.commit()
     return {}
