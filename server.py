@@ -34,7 +34,7 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url="/courses/2023WS-EiP/yee-social-network" if env.api_key == "" else "" + "/interactive",
+    docs_url="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + "/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
@@ -183,7 +183,7 @@ def authorized(f):
                 env.auth_url
                 + "/auth/login?redirect="
                 + "/courses/2023WS-EiP/yee-social-network"
-                if env.api_key == ""
+                if env.api_key != ""
                 else "" + str(request.url_for("login")),
             )
         return await f(*args, **kwargs)
@@ -194,7 +194,7 @@ def authorized(f):
 @app.get("/", include_in_schema=False)
 @authorized
 async def root(request: Request) -> RedirectResponse:
-    return RedirectResponse("/courses/2023WS-EiP/yee-social-network" if env.api_key == "" else "" + "/interactive")
+    return RedirectResponse("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + "/interactive")
 
 
 @app.get("/login", include_in_schema=False)
@@ -202,7 +202,7 @@ async def root(request: Request) -> RedirectResponse:
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
     return await client.authorize_redirect(  # type: ignore
-        request, "/courses/2023WS-EiP/yee-social-network" if env.api_key == "" else "" + request.url_for("callback")
+        request, "/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + request.url_for("callback")
     )
 
 
