@@ -35,7 +35,9 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url="/interactive",
+    docs_url="/courses/2023WS-EiP/yee-social-network"
+    if env.api_key != ""
+    else "" + "/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
@@ -44,7 +46,10 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
+    openapi_url="/courses/2023WS-EiP/openapi.json"
+    
 )
+# app.include_router(prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -181,9 +186,7 @@ def authorized(f):
         if not request.session.get("user"):
             request.session["redirect"] = str(request.url)
             return RedirectResponse(
-                env.auth_url
-                + "/auth/login?redirect="
-                + env.public_url + "/login",
+                env.auth_url + "/auth/login?redirect=" + env.public_url + "/login",
             )
         return await f(*args, **kwargs)
 
@@ -193,7 +196,11 @@ def authorized(f):
 @app.get("/", include_in_schema=False)
 @authorized
 async def root(request: Request) -> RedirectResponse:
-    return RedirectResponse("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + "/interactive")
+    return RedirectResponse(
+        "/courses/2023WS-EiP/yee-social-network"
+        if env.api_key != ""
+        else "" + "/interactive"
+    )
 
 
 @app.get("/login", include_in_schema=False)
