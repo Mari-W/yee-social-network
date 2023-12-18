@@ -12,7 +12,7 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3
 
 WORKDIR /app
 
-COPY ./server /app/server
+COPY ./server.py /app/server.py
 COPY ./requirements.txt /app/requirements.txt
 
 RUN python3 -m pip install --no-cache-dir --upgrade -r /app/requirements.txt
