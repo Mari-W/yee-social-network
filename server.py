@@ -46,9 +46,9 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
-    openapi_url="/courses/2023WS-EiP/openapi.json",
+    openapi_url="/courses/2023WS-EiP/openapi.json" if env.api_url != "" else "/openapi.json",
 )
-# app.include_router(prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
