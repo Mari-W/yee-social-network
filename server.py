@@ -183,7 +183,7 @@ def authorized(f):
             return RedirectResponse(
                 env.auth_url
                 + "/auth/login?redirect="
-                + env.public_url + str(request.url_for("login")),
+                + env.public_url + "/login",
             )
         return await f(*args, **kwargs)
 
@@ -201,7 +201,7 @@ async def root(request: Request) -> RedirectResponse:
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
     return await client.authorize_redirect(  # type: ignore
-        request, "/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + request.url_for("callback")
+        request, "/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + "/callback"
     )
 
 
