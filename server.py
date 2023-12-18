@@ -35,8 +35,7 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url=("/yee" if env.api_url != "" else "")
-    + "/interactive",
+    docs_url=("/yee" if env.api_url != "" else "") + "/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
@@ -45,16 +44,15 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
-    openapi_url=("/yee" if env.api_url != "" else "")
-    + "/openapi.json",
+    openapi_url=("/yee" if env.api_url != "" else "") + "/openapi.json",
 )
-# app.include_router(prefix="/yee" if env.api_key != "" else "")
+
+
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SessionMiddleware, secret_key=env.secret_key, max_age=94608000)
 
-# app.include_router(router)
 
 laurel = OAuth()
 laurel.register(
@@ -199,10 +197,7 @@ def authorized(f):
 )
 @authorized
 async def root(request: Request) -> RedirectResponse:
-    return RedirectResponse(
-        ("/yee" if env.api_key != "" else "")
-        + "/interactive"
-    )
+    return RedirectResponse(("/yee" if env.api_key != "" else "") + "/interactive")
 
 
 @app.get(
@@ -218,8 +213,7 @@ async def login(request: Request) -> dict[str, Any]:
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/callback",
+    ("/yee" if env.api_key != "" else "") + "/callback",
     include_in_schema=False,
     response_model=None,
 )
@@ -240,8 +234,7 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/yeets/all/{amount}",
+    ("/yee" if env.api_key != "" else "") + "/yeets/all/{amount}",
     tags=["yeets"],
     summary="get the latest yeets from the overall network",
     description="get the last `amount` (where `amount` must be a strictly positive integer) yeets on the network as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
@@ -276,8 +269,7 @@ async def all_yeets(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/yeets/{yeet_id}/likes",
+    ("/yee" if env.api_key != "" else "") + "/yeets/{yeet_id}/likes",
     tags=["yeets"],
     summary="get all users who liked a yeet",
     description="get a list of strings of all users who liked the yeet with yeet_id `yeet`",
@@ -317,8 +309,7 @@ class YeetId(BaseModel):
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "")
-    + "/yeets/add",
+    ("/yee" if env.api_key != "" else "") + "/yeets/add",
     tags=["yeets"],
     summary="create an new yeet",
     description="creates an new yeet, where the request body dictionary must be of the form {content: str}",
@@ -348,8 +339,7 @@ async def add_yeet(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "")
-    + "/yeets/remove",
+    ("/yee" if env.api_key != "" else "") + "/yeets/remove",
     tags=["yeets"],
     summary="remove a yeet",
     description="remove a yeet, where the request body dictionary must be of the form {yeet_id: int}",
@@ -378,8 +368,7 @@ async def remove_yeet(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "")
-    + "/likes/add",
+    ("/yee" if env.api_key != "" else "") + "/likes/add",
     tags=["likes"],
     summary="like a yeet",
     description="like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
@@ -410,8 +399,7 @@ async def add_like(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "")
-    + "/likes/remove",
+    ("/yee" if env.api_key != "" else "") + "/likes/remove",
     tags=["likes"],
     summary="un-like a yeet",
     description="un-like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
@@ -445,8 +433,7 @@ async def remove_like(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/users/all",
+    ("/yee" if env.api_key != "" else "") + "/users/all",
     tags=["users"],
     summary="get all users registered on the network",
     description="get a list of strings of all users who are registered on the network",
@@ -471,8 +458,7 @@ async def all_users(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/users/{user}/yeets",
+    ("/yee" if env.api_key != "" else "") + "/users/{user}/yeets",
     tags=["users"],
     summary="get all yeets yeeted by an user",
     description="get all yeets of user `user` as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
@@ -507,8 +493,7 @@ async def yeets(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/users/{user}/following",
+    ("/yee" if env.api_key != "" else "") + "/users/{user}/following",
     tags=["users"],
     summary="get all users who an user follows",
     description="get a list of strings of all users who `user` follows",
@@ -532,8 +517,7 @@ async def following(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/users/{user}/followers",
+    ("/yee" if env.api_key != "" else "") + "/users/{user}/followers",
     tags=["users"],
     summary="get all users who follow an user",
     description="get a list of strings of all users who follow `user`",
@@ -557,8 +541,7 @@ async def followers(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "")
-    + "/users/{user}/likes",
+    ("/yee" if env.api_key != "" else "") + "/users/{user}/likes",
     tags=["users"],
     summary="get all yeets who an user liked",
     description="get a list of integers of all yeet ids who `user` liked",
@@ -585,8 +568,7 @@ class User(BaseModel):
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "")
-    + "/follows/add",
+    ("/yee" if env.api_key != "" else "") + "/follows/add",
     tags=["follows"],
     summary="follow a user",
     description="follow a user by its username, where the request body dictionary must be of the form {username: str}",
@@ -615,8 +597,7 @@ async def follow(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "")
-    + "/follows/remove",
+    ("/yee" if env.api_key != "" else "") + "/follows/remove",
     tags=["follows"],
     summary="un-follow a user",
     description="un-follow a user by its username, where the request body dictionary must be of the form {username: str}",
