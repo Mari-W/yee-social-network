@@ -35,9 +35,8 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url="/courses/2023WS-EiP/yee-social-network"
-    if env.api_key != ""
-    else "" + "/interactive",
+    docs_url=("/courses/2023WS-EiP/yee-social-network" if env.api_url != "" else "")
+    + "/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
@@ -46,19 +45,16 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
-    openapi_url="/courses/2023WS-EiP/openapi.json" if env.api_url != "" else "/openapi.json",
+    openapi_url=("/courses/2023WS-EiP/yee-social-network" if env.api_url != "" else "")
+    + "/openapi.json",
 )
-
+# app.include_router(prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SessionMiddleware, secret_key=env.secret_key, max_age=94608000)
 
-router = APIRouter(
-    prefix="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else ""
-)
-
-app.include_router(router)
+# app.include_router(router)
 
 laurel = OAuth()
 laurel.register(
@@ -197,17 +193,22 @@ def authorized(f):
     return decorated
 
 
-@router.get("/", include_in_schema=False)
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "") + "/",
+    include_in_schema=False,
+)
 @authorized
 async def root(request: Request) -> RedirectResponse:
     return RedirectResponse(
-        "/courses/2023WS-EiP/yee-social-network"
-        if env.api_key != ""
-        else "" + "/interactive"
+        ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+        + "/interactive"
     )
 
 
-@router.get("/login", include_in_schema=False)
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "") + "/login",
+    include_in_schema=False,
+)
 @limiter.limit("20/minute")
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
@@ -216,7 +217,12 @@ async def login(request: Request) -> dict[str, Any]:
     )
 
 
-@router.get("/callback", include_in_schema=False, response_model=None)
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/callback",
+    include_in_schema=False,
+    response_model=None,
+)
 @limiter.limit("20/minute")
 async def callback(request: Request) -> dict[str, Any] | RedirectResponse:
     client = laurel.create_client("laurel")
@@ -233,8 +239,9 @@ async def error(response: Response, message: str) -> dict[str, Any]:
     return {"message": message}
 
 
-@router.get(
-    "/yeets/all/{amount}",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/yeets/all/{amount}",
     tags=["yeets"],
     summary="get the latest yeets from the overall network",
     description="get the last `amount` (where `amount` must be a strictly positive integer) yeets on the network as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
@@ -268,8 +275,9 @@ async def all_yeets(
     }
 
 
-@router.get(
-    "/yeets/{yeet_id}/likes",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/yeets/{yeet_id}/likes",
     tags=["yeets"],
     summary="get all users who liked a yeet",
     description="get a list of strings of all users who liked the yeet with yeet_id `yeet`",
@@ -308,8 +316,9 @@ class YeetId(BaseModel):
     id: int
 
 
-@router.post(
-    "/yeets/add",
+@app.post(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/yeets/add",
     tags=["yeets"],
     summary="create an new yeet",
     description="creates an new yeet, where the request body dictionary must be of the form {content: str}",
@@ -338,8 +347,9 @@ async def add_yeet(
     return {}
 
 
-@router.post(
-    "/yeets/remove",
+@app.post(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/yeets/remove",
     tags=["yeets"],
     summary="remove a yeet",
     description="remove a yeet, where the request body dictionary must be of the form {yeet_id: int}",
@@ -367,8 +377,9 @@ async def remove_yeet(
     return {}
 
 
-@router.post(
-    "/likes/add",
+@app.post(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/likes/add",
     tags=["likes"],
     summary="like a yeet",
     description="like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
@@ -398,8 +409,9 @@ async def add_like(
     return {}
 
 
-@router.post(
-    "/likes/remove",
+@app.post(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/likes/remove",
     tags=["likes"],
     summary="un-like a yeet",
     description="un-like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
@@ -432,8 +444,9 @@ async def remove_like(
     return {}
 
 
-@router.get(
-    "/users/all",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/users/all",
     tags=["users"],
     summary="get all users registered on the network",
     description="get a list of strings of all users who are registered on the network",
@@ -457,8 +470,9 @@ async def all_users(
     }
 
 
-@router.get(
-    "/users/{user}/yeets",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/users/{user}/yeets",
     tags=["users"],
     summary="get all yeets yeeted by an user",
     description="get all yeets of user `user` as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
@@ -492,8 +506,9 @@ async def yeets(
     }
 
 
-@router.get(
-    "/users/{user}/following",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/users/{user}/following",
     tags=["users"],
     summary="get all users who an user follows",
     description="get a list of strings of all users who `user` follows",
@@ -516,8 +531,9 @@ async def following(
     }
 
 
-@router.get(
-    "/users/{user}/followers",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/users/{user}/followers",
     tags=["users"],
     summary="get all users who follow an user",
     description="get a list of strings of all users who follow `user`",
@@ -540,8 +556,9 @@ async def followers(
     }
 
 
-@router.get(
-    "/users/{user}/likes",
+@app.get(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/users/{user}/likes",
     tags=["users"],
     summary="get all yeets who an user liked",
     description="get a list of integers of all yeet ids who `user` liked",
@@ -567,8 +584,9 @@ class User(BaseModel):
     username: str
 
 
-@router.post(
-    "/follows/add",
+@app.post(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/follows/add",
     tags=["follows"],
     summary="follow a user",
     description="follow a user by its username, where the request body dictionary must be of the form {username: str}",
@@ -596,8 +614,9 @@ async def follow(
     return {}
 
 
-@router.post(
-    "/follows/remove",
+@app.post(
+    ("/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "")
+    + "/follows/remove",
     tags=["follows"],
     summary="un-follow a user",
     description="un-follow a user by its username, where the request body dictionary must be of the form {username: str}",
