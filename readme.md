@@ -7,6 +7,6 @@ used for an exercise sheet in the programming introductory course at ufr 2023.
 ```
 python3.10 -m venv venv
 python3.10 -m pip install -r requirements.txt
-mv .env.example .env
+cp .env.example .env
 ./dev
 ```
