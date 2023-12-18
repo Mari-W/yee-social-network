@@ -35,7 +35,7 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url="/courses/2023WS-EiP/yee-social-network" if env.api_key != "" else "" + "/interactive",
+    docs_url="/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
