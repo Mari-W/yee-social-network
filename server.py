@@ -144,7 +144,7 @@ def ttl_cache(f, ttl=timedelta(minutes=20)):
     def wrapped(*args, **kwargs):
         nonlocal time
         nonlocal value
-        now = datetime.now().timestamp()
+        now = datetime.now()
         if not time or now - time > ttl:
             value = f(*args, **kwargs)
             time = now
@@ -329,7 +329,7 @@ async def add_yeet(
         )
     database.add(
         Yeets(
-            date=datetime.utcnow(),
+            date=datetime.utcnow().timestamp(),
             author=request.session["user"]["sub"],
             content=content.content,
         )
