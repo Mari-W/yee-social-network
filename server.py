@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 
 class Env(BaseSettings):
+    public_url: str
     auth_url: str
     client_id: str
     client_secret: str
@@ -182,9 +183,7 @@ def authorized(f):
             return RedirectResponse(
                 env.auth_url
                 + "/auth/login?redirect="
-                + "/courses/2023WS-EiP/yee-social-network"
-                if env.api_key != ""
-                else "" + str(request.url_for("login")),
+                + env.public_url + str(request.url_for("login")),
             )
         return await f(*args, **kwargs)
 
