@@ -271,7 +271,7 @@ async def all_yeets(
 @app.get(
     ("/yee" if env.api_key != "" else "") + "/yeets/{yeet_id}",
     tags=["yeets"],
-    summary="get a yeet by its yeet_id",
+    summary="get a yeet",
     description="get a yeet by its yeet_id as dictionary",
 )
 @limiter.limit("20/minute")
