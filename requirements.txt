@@ -3,3 +3,4 @@ fastapi[all]
 slowapi
 sqlalchemy
 authlib
+uvicorn
