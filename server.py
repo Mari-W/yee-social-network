@@ -35,7 +35,7 @@ env = Env()  # type: ignore
 
 app = FastAPI(
     title="Yee Social Network API",
-    docs_url=("/yee" if env.api_url != "" else "") + "/interactive",
+    docs_url="/yee/interactive",
     terms_of_service="https://www.youtube.com/watch?v=q6EoRBvdVPQ",
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     openapi_tags=[
@@ -44,7 +44,7 @@ app = FastAPI(
         {"name": "likes", "description": "operations concerning likes"},
         {"name": "follows", "description": "operations concerning follows"},
     ],
-    openapi_url=("/yee" if env.api_url != "" else "") + "/openapi.json",
+    openapi_url="/yee/openapi.json",
 )
 
 
@@ -191,19 +191,19 @@ def authorized(f):
     return decorated
 
 
-@app.get(
-    ("/yee" if env.api_key != "" else "") + "/",
-    include_in_schema=False,
-)
+@app.get("/", include_in_schema=False)
 @authorized
 async def root(request: Request) -> RedirectResponse:
-    return RedirectResponse(("/yee" if env.api_key != "" else "") + "/interactive")
+    return RedirectResponse("/yee/interactive")
 
 
-@app.get(
-    ("/yee" if env.api_key != "" else "") + "/login",
-    include_in_schema=False,
-)
+@app.get("/yee", include_in_schema=False)
+@authorized
+async def root_yee(request: Request) -> RedirectResponse:
+    return RedirectResponse("/yee/interactive")
+
+
+@app.get("/login", include_in_schema=False)
 @limiter.limit("20/minute")
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
@@ -212,11 +212,7 @@ async def login(request: Request) -> dict[str, Any]:
     )
 
 
-@app.get(
-    ("/yee" if env.api_key != "" else "") + "/callback",
-    include_in_schema=False,
-    response_model=None,
-)
+@app.get("/callback", include_in_schema=False, response_model=None)
 @limiter.limit("20/minute")
 async def callback(request: Request) -> dict[str, Any] | RedirectResponse:
     client = laurel.create_client("laurel")
@@ -234,7 +230,7 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/yeets/all/{amount}",
+    "/yee/yeets/all/{amount}",
     tags=["yeets"],
     summary="get the latest yeets from the overall network",
     description="get the last `amount` (where `amount` must be a strictly positive integer) yeets on the network as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
@@ -269,7 +265,7 @@ async def all_yeets(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/yeets/{yeet_id}",
+    "/yee/yeets/{yeet_id}",
     tags=["yeets"],
     summary="get a yeet",
     description="get a yeet by its yeet_id as dictionary",
@@ -282,11 +278,7 @@ async def yeet(
     response: Response,
     database: Session = Depends(database),
 ) -> dict[str, Any]:
-    first = (
-        database.query(Yeets)
-        .filter_by(id=yeet_id)
-        .first()
-    )
+    first = database.query(Yeets).filter_by(id=yeet_id).first()
     if not first:
         return await error(
             response,
@@ -304,7 +296,7 @@ async def yeet(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/yeets/{yeet_id}/likes",
+    "/yee/yeets/{yeet_id}/likes",
     tags=["yeets"],
     summary="get all users who liked a yeet",
     description="get a list of strings of all users who liked the yeet with yeet_id `yeet`",
@@ -344,7 +336,7 @@ class YeetId(BaseModel):
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "") + "/yeets/add",
+    "/yee/yeets/add",
     tags=["yeets"],
     summary="create an new yeet",
     description="creates an new yeet, where the request body dictionary must be of the form {content: str}",
@@ -376,7 +368,7 @@ async def add_yeet(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "") + "/yeets/remove",
+    "/yee/yeets/remove",
     tags=["yeets"],
     summary="remove a yeet",
     description="remove a yeet, where the request body dictionary must be of the form {yeet_id: int}",
@@ -405,7 +397,7 @@ async def remove_yeet(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "") + "/likes/add",
+    "/yee/likes/add",
     tags=["likes"],
     summary="like a yeet",
     description="like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
@@ -436,7 +428,7 @@ async def add_like(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "") + "/likes/remove",
+    "/yee/likes/remove",
     tags=["likes"],
     summary="un-like a yeet",
     description="un-like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
@@ -470,7 +462,7 @@ async def remove_like(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/users/all",
+    "/yee/users/all",
     tags=["users"],
     summary="get all users registered on the network",
     description="get a list of strings of all users who are registered on the network",
@@ -488,7 +480,7 @@ async def all_users(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/users/{user}/yeets",
+    "/yee/users/{user}/yeets",
     tags=["users"],
     summary="get all yeets yeeted by an user",
     description="get all yeets of user `user` as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
@@ -523,7 +515,7 @@ async def yeets(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/users/{user}/following",
+    "/yee/users/{user}/following",
     tags=["users"],
     summary="get all users who an user follows",
     description="get a list of strings of all users who `user` follows",
@@ -547,7 +539,7 @@ async def following(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/users/{user}/followers",
+    "/yee/users/{user}/followers",
     tags=["users"],
     summary="get all users who follow an user",
     description="get a list of strings of all users who follow `user`",
@@ -571,7 +563,7 @@ async def followers(
 
 
 @app.get(
-    ("/yee" if env.api_key != "" else "") + "/users/{user}/likes",
+    "/yee/users/{user}/likes",
     tags=["users"],
     summary="get all yeets who an user liked",
     description="get a list of integers of all yeet ids who `user` liked",
@@ -598,7 +590,7 @@ class User(BaseModel):
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "") + "/follows/add",
+    "/yee/follows/add",
     tags=["follows"],
     summary="follow a user",
     description="follow a user by its username, where the request body dictionary must be of the form {username: str}",
@@ -627,7 +619,7 @@ async def follow(
 
 
 @app.post(
-    ("/yee" if env.api_key != "" else "") + "/follows/remove",
+    "/yee/follows/remove",
     tags=["follows"],
     summary="un-follow a user",
     description="un-follow a user by its username, where the request body dictionary must be of the form {username: str}",
