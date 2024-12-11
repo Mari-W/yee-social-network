@@ -1,11 +1,12 @@
+# IMPORTS ###############################################################################
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any
+from typing import Any, Optional
 from fastapi import Depends, FastAPI, Response
 from authlib.integrations.starlette_client import OAuth
 from requests import get as requests_get
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi import Request, APIRouter
+from fastapi import Request
 from fastapi.responses import RedirectResponse
 from pydantic_settings import BaseSettings
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -17,14 +18,17 @@ from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 
 
+# SETTINGS ##############################################################################
 class Env(BaseSettings):
     public_url: str
     auth_url: str
     client_id: str
     client_secret: str
     secret_key: str
+    course: str
     api_key: str
     api_url: str
+    admins: list[str]
 
     class Config:
         env_file = ".env"
@@ -33,6 +37,11 @@ class Env(BaseSettings):
 env = Env()  # type: ignore
 
 
+def is_local():
+    return env.api_key == ""
+
+
+# APP ###################################################################################
 app = FastAPI(
     title="Yee Social Network API",
     docs_url="/yee/interactive",
@@ -50,10 +59,10 @@ app = FastAPI(
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore
 app.add_middleware(SessionMiddleware, secret_key=env.secret_key, max_age=94608000)
 
-
+# OAUTH #################################################################################
 laurel = OAuth()
 laurel.register(
     "laurel",
@@ -63,6 +72,7 @@ laurel.register(
     client_kwargs={"scope": "openid profile email"},
 )
 
+# DATABASE ##############################################################################
 engine = create_engine(
     "sqlite:///database.db", connect_args={"check_same_thread": False}
 )
@@ -74,10 +84,11 @@ Base = declarative_base()
 class Yeets(Base):
     __tablename__ = "yeets"
 
-    id = Column(Integer, unique=True, primary_key=True)
+    yeet_id = Column(Integer, unique=True, primary_key=True)
     date = Column(Float)
     author = Column(String)
     content = Column(String)
+    reply_to = Column(Integer, nullable=True)
 
 
 class Follows(Base):
@@ -111,33 +122,8 @@ def database():
         db.close()
 
 
-USERS = [
-    "mw1187",
-    "mw650",
-    "hs1087",
-    "thiemann",
-    "lk473",
-    "th344",
-    "th236",
-    "ts593",
-    "sd318",
-    "cu35",
-    "dm296",
-    "vb170",
-    "kk179",
-    "th322",
-    "sk925",
-    "tb305",
-    "me351",
-    "ms2262",
-    "np163",
-    "jp373",
-    "az174",
-    "gd38",
-]
-
-
-def ttl_cache(f, ttl=timedelta(minutes=20)):
+# API ###################################################################################
+def ttl_cache(f, ttl: timedelta = timedelta(minutes=20)):
     time, value = None, None
 
     @wraps(f)
@@ -155,28 +141,48 @@ def ttl_cache(f, ttl=timedelta(minutes=20)):
 
 @ttl_cache
 def is_valid_user(username: str) -> bool:
-    if username in USERS:
+    if username in env.admins:
         return True
-    if env.api_url == "":
+
+    if is_local():
         return True
+
     response = requests_get(
-        f"{env.api_url}/course/2023WS-EiP/is_student/{username}",
+        f"{env.api_url}/course/{env.course}/is_student/{username}",
         headers={"Authorization": env.api_key},
     )
-    return response.status_code == 200
+    if response.status_code == 200:
+        return True
+    response = requests_get(
+        f"{env.api_url}/course/{env.course}/is_tutor/{username}",
+        headers={"Authorization": env.api_key},
+    )
+    if response.status_code == 200:
+        return True
+
+    return False
 
 
 @ttl_cache
 def get_all_users() -> list[str]:
-    if env.api_url == "":
-        return USERS
+    if is_local():
+        return env.admins
+
     response = requests_get(
-        f"{env.api_url}/course/2023WS-EiP/students",
+        f"{env.api_url}/course/{env.course}/students",
         headers={"Authorization": env.api_key},
     )
-    return list(response.json().keys()) + USERS
+    students = list(response.json().keys())
+    response = requests_get(
+        f"{env.api_url}/course/{env.course}/tutors",
+        headers={"Authorization": env.api_key},
+    )
+    tutors = list(response.json().keys())
+
+    return students + tutors + env.admins
 
 
+# ROUTES ################################################################################
 def authorized(f):
     @wraps(f)
     async def decorated(*args, **kwargs):
@@ -203,17 +209,17 @@ async def root_yee(request: Request) -> RedirectResponse:
     return RedirectResponse("/yee/interactive")
 
 
-@app.get("/login", include_in_schema=False)
-@limiter.limit("20/minute")
+@app.get("/yee/login", include_in_schema=False)
+@limiter.limit("10/minute")
 async def login(request: Request) -> dict[str, Any]:
     client = laurel.create_client("laurel")
     return await client.authorize_redirect(  # type: ignore
-        request, env.public_url + "/callback"
+        request, env.public_url + "/yee/callback"
     )
 
 
-@app.get("/callback", include_in_schema=False, response_model=None)
-@limiter.limit("20/minute")
+@app.get("/yee/callback", include_in_schema=False, response_model=None)
+@limiter.limit("10/minute")
 async def callback(request: Request) -> dict[str, Any] | RedirectResponse:
     client = laurel.create_client("laurel")
     token = await client.authorize_access_token(request)  # type: ignore
@@ -232,8 +238,8 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 @app.get(
     "/yee/yeets/all/{amount}",
     tags=["yeets"],
-    summary="get the latest yeets from the overall network",
-    description="get the last `amount` (where `amount` must be a strictly positive integer) yeets on the network as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
+    summary="get the latest yeet ids (non-replies) from the overall network",
+    description="get the last `amount` (`int`) yeets (non-replies) on the network as list of yeet ids (`int`)",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -251,14 +257,13 @@ async def all_yeets(
 
     return {
         "response": [
-            {
-                "yeet_id": yeet.id,
-                "author": yeet.author,
-                "content": yeet.content,
-                "date": yeet.date,
-            }
+            yeet.yeet_id
             for yeet in reversed(
-                database.query(Yeets).order_by(Yeets.id.desc()).limit(amount).all()
+                database.query(Yeets)
+                .filter_by(reply_to=None)
+                .order_by(Yeets.yeet_id.desc())
+                .limit(amount)
+                .all()
             )
         ]
     }
@@ -268,9 +273,9 @@ async def all_yeets(
     "/yee/yeets/{yeet_id}",
     tags=["yeets"],
     summary="get a yeet",
-    description="get a yeet by its yeet_id as dictionary",
+    description="get a yeet by its `yeet_id` (`int`) as dictionary of the form `{yeet_id: int, author: str, content: str, date: int, reply_to: int}`",
 )
-@limiter.limit("20/minute")
+@limiter.limit("5000/minute")
 @authorized
 async def yeet(
     request: Request,
@@ -278,7 +283,7 @@ async def yeet(
     response: Response,
     database: Session = Depends(database),
 ) -> dict[str, Any]:
-    first = database.query(Yeets).filter_by(id=yeet_id).first()
+    first = database.query(Yeets).filter_by(yeet_id=yeet_id).first()
     if not first:
         return await error(
             response,
@@ -286,20 +291,23 @@ async def yeet(
         )
 
     return {
-        "response": {
-            "yeet_id": first.id,
-            "author": first.author,
-            "content": first.content,
-            "date": first.date,
-        }
+        "response": (
+            {
+                "yeet_id": first.yeet_id,
+                "author": first.author,
+                "content": first.content,
+                "date": first.date,
+            }
+            | ({"reply_to": first.reply_to} if first.reply_to is not None else {})
+        )
     }
 
 
 @app.get(
     "/yee/yeets/{yeet_id}/likes",
     tags=["yeets"],
-    summary="get all users who liked a yeet",
-    description="get a list of strings of all users who liked the yeet with yeet_id `yeet`",
+    summary="get all users that liked a yeet",
+    description="get a list of usernames (`str`) that liked the yeet with yeet id `yeet_id`",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -310,10 +318,10 @@ async def yeet_likes(
     database: Session = Depends(database),
 ) -> dict[str, Any]:
     if not database.query(
-        database.query(Yeets).filter_by(id=yeet_id).exists()
+        database.query(Yeets).filter_by(yeet_id=yeet_id).exists()
     ).scalar():
         return await error(
-            response, f"there does not exist a yeet with yeet_id {yeet_id}"
+            response, f"there does not exist a yeet with yeet_id {yeet_id}!"
         )
 
     return {
@@ -327,40 +335,85 @@ async def yeet_likes(
     }
 
 
-class Content(BaseModel):
+@app.get(
+    "/yee/yeets/{yeet_id}/replies",
+    tags=["yeets"],
+    summary="get all yeets ids that are replies to a yeet",
+    description="get a list of yeet ids (`int`) that are replies to the yeet with yeet id `yeet_id`",
+)
+@limiter.limit("20/minute")
+@authorized
+async def yeet_replies(
+    request: Request,
+    yeet_id: int,
+    response: Response,
+    database: Session = Depends(database),
+) -> dict[str, Any]:
+    if not database.query(
+        database.query(Yeets).filter_by(yeet_id=yeet_id).exists()
+    ).scalar():
+        return await error(
+            response, f"there does not exist a yeet with yeet id {yeet_id}!"
+        )
+
+    return {
+        "response": [
+            yeet.yeet_id
+            for yeet in database.query(Yeets)
+            .filter_by(reply_to=yeet_id)
+            .order_by(Yeets.yeet_id.desc())
+            .all()
+        ]
+    }
+
+
+class Yeet(BaseModel):
     content: str
+    reply_to: Optional[int] = None
 
 
 class YeetId(BaseModel):
-    id: int
+    yeet_id: int
 
 
 @app.post(
     "/yee/yeets/add",
     tags=["yeets"],
-    summary="create an new yeet",
-    description="creates an new yeet, where the request body dictionary must be of the form {content: str}",
+    summary="yeet an new yeet",
+    description="yeets an new yeet: the request body dictionary must be of the form `{content: str, reply_to: int = -1}`",
 )
 @limiter.limit("20/minute")
 @authorized
 async def add_yeet(
     request: Request,
-    content: Content,
+    yeet: Yeet,
     response: Response,
     database: Session = Depends(database),
 ) -> dict[str, Any]:
-    if len(content.content) > 420:
+    if len(yeet.content) > 420:
         return await error(
             response,
             "maximum content length of a yeet is 420 characters (including spaces)!",
         )
-    if not len(content.content):
-        return await error(response, "dont you have at least something to say?!")
+    if not len(yeet.content):
+        return await error(
+            response,
+            "yeeting nothing is also yeeting something, but lets do not get too philosophical.",
+        )
+    if yeet.reply_to is not None:
+        first = database.query(Yeets).filter_by(yeet_id=yeet.reply_to).first()
+        if not first:
+            return await error(
+                response,
+                f"there does not exist a yeet with yeet id {yeet.reply_to} that you can reply to!",
+            )
+
     database.add(
         Yeets(
             date=datetime.utcnow().timestamp(),
             author=request.session["user"]["sub"],
-            content=content.content,
+            content=yeet.content,
+            reply_to=yeet.reply_to,
         )
     )
     database.commit()
@@ -371,7 +424,7 @@ async def add_yeet(
     "/yee/yeets/remove",
     tags=["yeets"],
     summary="remove a yeet",
-    description="remove a yeet, where the request body dictionary must be of the form {yeet_id: int}",
+    description="remove a yeet: the request body dictionary must be of the form `{yeet_id: int}`",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -383,7 +436,7 @@ async def remove_yeet(
 ) -> dict[str, Any]:
     first = (
         database.query(Yeets)
-        .filter_by(id=yeet_id.id, author=request.session["user"]["sub"])
+        .filter_by(yeet_id=yeet_id.yeet_id, author=request.session["user"]["sub"])
         .first()
     )
     if not first:
@@ -400,7 +453,7 @@ async def remove_yeet(
     "/yee/likes/add",
     tags=["likes"],
     summary="like a yeet",
-    description="like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
+    description="like a yeet: the request body dictionary must be of the form `{yeet_id: int}`",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -411,18 +464,18 @@ async def add_like(
     database: Session = Depends(database),
 ) -> dict[str, Any]:
     if not database.query(
-        database.query(Yeets).filter_by(id=yeet_id.id).exists()
+        database.query(Yeets).filter_by(yeet_id=yeet_id.yeet_id).exists()
     ).scalar():
         return await error(response, f"there does not exist a yeet with id {yeet_id}!")
     if database.query(
         database.query(Likes)
-        .filter_by(yeet=yeet_id.id, user=request.session["user"]["sub"])
+        .filter_by(yeet=yeet_id.yeet_id, user=request.session["user"]["sub"])
         .exists()
     ).scalar():
         return await error(
-            response, f"your already liked the yeet with id {yeet_id.id}!"
+            response, f"your already liked the yeet with id {yeet_id.yeet_id}!"
         )
-    database.add(Likes(yeet=yeet_id.id, user=request.session["user"]["sub"]))
+    database.add(Likes(yeet=yeet_id.yeet_id, user=request.session["user"]["sub"]))
     database.commit()
     return {}
 
@@ -431,7 +484,7 @@ async def add_like(
     "/yee/likes/remove",
     tags=["likes"],
     summary="un-like a yeet",
-    description="un-like a yeet by using its yeet_id, where the request body dictionary must be of the form {yeet_id: int}",
+    description="un-like a yeet: the request body dictionary must be of the form `{yeet_id: int}`",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -442,19 +495,19 @@ async def remove_like(
     database: Session = Depends(database),
 ) -> dict[str, Any]:
     if not database.query(
-        database.query(Yeets).filter_by(id=yeet_id.id).exists()
+        database.query(Yeets).filter_by(yeet_id=yeet_id.yeet_id).exists()
     ).scalar():
         return await error(
             response, f"there does not exist a yeet with yeet_id {yeet_id}!"
         )
     first = (
         database.query(Likes)
-        .filter_by(yeet=yeet_id.id, user=request.session["user"]["sub"])
+        .filter_by(yeet=yeet_id.yeet_id, user=request.session["user"]["sub"])
         .first()
     )
     if not first:
         return await error(
-            response, f"you have not yet liked yeet with yeet_id {yeet_id}!"
+            response, f"you have not yet liked a yeet with yeet_id {yeet_id}!"
         )
     database.delete(first)
     database.commit()
@@ -465,7 +518,7 @@ async def remove_like(
     "/yee/users/all",
     tags=["users"],
     summary="get all users registered on the network",
-    description="get a list of strings of all users who are registered on the network",
+    description="get a list of usernames (`str`) of all users on the network",
 )
 @limiter.limit(
     "20/minute",
@@ -482,8 +535,8 @@ async def all_users(
 @app.get(
     "/yee/users/{user}/yeets",
     tags=["users"],
-    summary="get all yeets yeeted by an user",
-    description="get all yeets of user `user` as list of dictionaries of the form {yeet_id: int, author: str, content: str, date: int, likes: int}",
+    summary="get all yeets ids yeeted by an user",
+    description="get all yeets of user `user` as list of yeet ids (`int`)",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -498,16 +551,11 @@ async def yeets(
 
     return {
         "response": [
-            {
-                "yeet_id": yeet.id,
-                "author": yeet.author,
-                "content": yeet.content,
-                "date": yeet.date,
-            }
+            yeet.yeet_id
             for yeet in reversed(
                 database.query(Yeets)
                 .filter_by(author=user)
-                .order_by(Yeets.id.desc())
+                .order_by(Yeets.yeet_id.desc())
                 .all()
             )
         ]
@@ -517,8 +565,8 @@ async def yeets(
 @app.get(
     "/yee/users/{user}/following",
     tags=["users"],
-    summary="get all users who an user follows",
-    description="get a list of strings of all users who `user` follows",
+    summary="get all users that an user follows",
+    description="get a list of usernames (`str`) of all users that `user` follows",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -541,8 +589,8 @@ async def following(
 @app.get(
     "/yee/users/{user}/followers",
     tags=["users"],
-    summary="get all users who follow an user",
-    description="get a list of strings of all users who follow `user`",
+    summary="get all users that follow an user",
+    description="get a list of usernames (`str`) of all users that follow `user`",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -565,8 +613,8 @@ async def followers(
 @app.get(
     "/yee/users/{user}/likes",
     tags=["users"],
-    summary="get all yeets who an user liked",
-    description="get a list of integers of all yeet ids who `user` liked",
+    summary="get all yeets that an user liked",
+    description="get a list of yeet ids (`int`) that `user` liked",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -592,8 +640,8 @@ class User(BaseModel):
 @app.post(
     "/yee/follows/add",
     tags=["follows"],
-    summary="follow a user",
-    description="follow a user by its username, where the request body dictionary must be of the form {username: str}",
+    summary="follow an user",
+    description="follow a user by its username: the request body dictionary must be of the form `{username: str}`",
 )
 @limiter.limit("20/minute")
 @authorized
@@ -621,8 +669,8 @@ async def follow(
 @app.post(
     "/yee/follows/remove",
     tags=["follows"],
-    summary="un-follow a user",
-    description="un-follow a user by its username, where the request body dictionary must be of the form {username: str}",
+    summary="un-follow an user",
+    description="un-follow a user by its username: the request body dictionary must be of the form `{username: str}`",
 )
 @limiter.limit("20/minute")
 @authorized
