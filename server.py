@@ -260,7 +260,6 @@ async def latest_yeets(
             yeet.yeet_id
             for yeet in reversed(
                 database.query(Yeets)
-                .filter_by(reply_to=None)
                 .order_by(Yeets.yeet_id.desc())
                 .limit(amount)
                 .all()
