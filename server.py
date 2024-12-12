@@ -236,14 +236,14 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 
 
 @app.get(
-    "/yee/yeets/all/{amount}",
+    "/yee/yeets/latest/{amount}",
     tags=["yeets"],
     summary="get the latest yeet ids (non-replies) from the overall network",
     description="get the last `amount` (`int`) yeets (non-replies) on the network as list of yeet ids (`int`)",
 )
 @limiter.limit("20/minute")
 @authorized
-async def all_yeets(
+async def latest_yeets(
     request: Request,
     amount: int,
     response: Response,
@@ -273,7 +273,7 @@ async def all_yeets(
     "/yee/yeets/{yeet_id}",
     tags=["yeets"],
     summary="get a yeet",
-    description="get a yeet by its `yeet_id` (`int`) as dictionary of the form `{yeet_id: int, author: str, content: str, date: int, reply_to: int}`",
+    description="get a yeet by its `yeet_id` (`int`) as dictionary of the form `{yeet_id: int, author: str, content: str, date: int, reply_to: Optional[int]}`",
 )
 @limiter.limit("5000/minute")
 @authorized
@@ -380,7 +380,7 @@ class YeetId(BaseModel):
     "/yee/yeets/add",
     tags=["yeets"],
     summary="yeet an new yeet",
-    description="yeets an new yeet: the request body dictionary must be of the form `{content: str, reply_to: int = -1}`",
+    description="yeets an new yeet: the request body dictionary must be of the form `{content: str, reply_to: Optional[int] = None}`",
 )
 @limiter.limit("20/minute")
 @authorized
