@@ -236,7 +236,7 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 
 
 @app.get(
-    "/yee/yeets/latest/{amount}",
+    "/yee/yeets/latest",
     tags=["yeets"],
     summary="get the latest yeet ids (non-replies) from the overall network",
     description="get the last `amount` (`int`) yeets (non-replies) on the network as list of yeet ids (`int`)",
@@ -245,23 +245,15 @@ async def error(response: Response, message: str) -> dict[str, Any]:
 @authorized
 async def latest_yeets(
     request: Request,
-    amount: int,
     response: Response,
     database: Session = Depends(database),
 ) -> dict[str, Any]:
-    if amount <= 0:
-        return await error(
-            response,
-            f"integer {amount} is not a strictly positive number for the amount of yeets to fetch!",
-        )
-
     return {
         "response": [
             yeet.yeet_id
             for yeet in reversed(
                 database.query(Yeets)
                 .order_by(Yeets.yeet_id.desc())
-                .limit(amount)
                 .all()
             )
         ]
