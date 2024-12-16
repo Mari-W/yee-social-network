@@ -1,6 +1,7 @@
 # IMPORTS ###############################################################################
 from datetime import datetime, timedelta
 from functools import wraps
+import os
 from typing import Any, Optional
 from fastapi import Depends, FastAPI, Response
 from authlib.integrations.starlette_client import OAuth
@@ -73,8 +74,9 @@ laurel.register(
 )
 
 # DATABASE ##############################################################################
+basedir = os.path.abspath(os.path.dirname(__file__))
 engine = create_engine(
-    "sqlite:///database.db", connect_args={"check_same_thread": False}
+    f"sqlite:///{os.path.join(basedir, "database.db")}", connect_args={"check_same_thread": False}
 )
 session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
