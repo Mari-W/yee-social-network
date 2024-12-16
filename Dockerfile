@@ -7,7 +7,7 @@ RUN apt-get update -y && \
 
 RUN add-apt-repository ppa:deadsnakes/ppa -y
 
-RUN apt-get install python3.12 python3.12-distutils -y
+RUN apt-get install python3.12 -y
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
 
 WORKDIR /app
