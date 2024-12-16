@@ -252,9 +252,7 @@ async def all_yeets(
         "response": [
             yeet.yeet_id
             for yeet in reversed(
-                database.query(Yeets)
-                .order_by(Yeets.yeet_id.desc())
-                .all()
+                database.query(Yeets).order_by(Yeets.yeet_id.desc()).all()
             )
         ]
     }
