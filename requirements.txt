@@ -4,3 +4,4 @@ slowapi
 sqlalchemy
 authlib
 uvicorn
+six
