@@ -192,7 +192,7 @@ def authorized(f):
         if not request.session.get("user"):
             request.session["redirect"] = str(request.url)
             return RedirectResponse(
-                env.auth_url + "/auth/login?redirect=" + env.public_url + "/login",
+                env.auth_url + "/auth/login?redirect=" + env.public_url + "/yee/login",
             )
         return await f(*args, **kwargs)
 
