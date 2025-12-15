@@ -241,7 +241,7 @@ async def error(response: Response, message: str) -> dict[str, Any]:
     "/yee/yeets/all",
     tags=["yeets"],
     summary="get the latest yeet ids (non-replies) from the overall network",
-    description="get the last `amount` (`int`) yeets (non-replies) on the network as list of yeet ids (`int`)",
+    description="get the latest yeets (non-replies) on the network as list of yeet ids (`int`)",
 )
 @limiter.limit("20/minute")
 @authorized
